@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Simple Browser-only Proxy (via allorigins)</title>
+  <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;} #viewer{width:100%; height:80vh; border:1px solid #ccc}</style>
+</head>
+<body>
+  <h3>簡易プロキシ（ブラウザ + 公開CORSプロキシ）</h3>
+  <input id="url" type="text" size="60" placeholder="https://example.com" />
+  <button id="go">表示</button>
+  <p>注意: 多くのサイトは iframe 埋め込みやCSPでブロックします。</p>
+  <iframe id="viewer"></iframe>
+
+  <script>
+    const btn = document.getElementById('go');
+    const urlInput = document.getElementById('url');
+    const viewer = document.getElementById('viewer');
+
+    function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    btn.addEventListener('click', async () => {
+      const target = urlInput.value.trim();
+      if (!target) return alert('URL を入力してください');
+      try {
+        // 公開CORSプロキシ (例: api.allorigins.win の raw エンドポイント)
+        const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(target);
+        const res = await fetch(proxy);
+        if (!res.ok) throw new Error('failed to fetch: ' + res.status);
+        const html = await res.text();
+
+        // iframe に読み込ませるために base を付加（相対URL対策）
+        // 警告: X-Frame-Options や CSP により iframe 表示がブロックされることが多い
+        viewer.srcdoc = '<base href="' + escapeHtml(target) + '">' + html;
+      } catch (e) {
+        alert('取得に失敗しました: ' + e.message);
+      }
+    });
+  </script>
+</body>
+</html>
